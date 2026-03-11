@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Automação Azure DevOps</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; overflow: hidden; height: 100vh; }
+
+  .presentation { width: 100%; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: none; flex-direction: column;
+    padding: 48px 64px;
+    opacity: 0; transition: opacity 0.4s ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  /* Nav */
+  .nav {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 16px; z-index: 100;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    padding: 10px 24px; border-radius: 40px; backdrop-filter: blur(12px);
+  }
+  .nav button {
+    background: none; border: none; color: #e6edf3; cursor: pointer;
+    font-size: 18px; padding: 4px 10px; border-radius: 8px;
+    transition: background 0.2s;
+  }
+  .nav button:hover { background: rgba(255,255,255,0.1); }
+  .nav button:disabled { opacity: 0.3; cursor: default; }
+  .nav-dots { display: flex; gap: 6px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.25); cursor: pointer; transition: all 0.2s;
+  }
+  .dot.active { background: #0078d4; transform: scale(1.3); }
+
+  /* Progress bar */
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, #0078d4, #50e6ff);
+    transition: width 0.4s ease; z-index: 100;
+  }
+
+  /* Slide counter */
+  .slide-counter {
+    position: fixed; top: 18px; right: 28px;
+    font-size: 12px; color: rgba(255,255,255,0.35);
+    z-index: 100; letter-spacing: 1px;
+  }
+
+  /* ---- SLIDE 1 - CAPA ---- */
+  #slide-1 {
+    background: linear-gradient(135deg, #0d1117 0%, #0f2744 50%, #0d1117 100%);
+    justify-content: center; align-items: center; text-align: center;
+  }
+  #slide-1 .logo-area {
+    margin-bottom: 32px;
+  }
+  #slide-1 .logo-area svg { width: 72px; height: 72px; }
+  #slide-1 h1 {
+    font-size: 42px; font-weight: 700;
+    background: linear-gradient(90deg, #0078d4, #50e6ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 16px; line-height: 1.2;
+  }
+  #slide-1 .subtitle {
+    font-size: 18px; color: rgba(255,255,255,0.5); margin-bottom: 48px;
+  }
+  #slide-1 .tags { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  #slide-1 .tag {
+    background: rgba(0,120,212,0.15); border: 1px solid rgba(0,120,212,0.4);
+    color: #50e6ff; padding: 6px 16px; border-radius: 20px; font-size: 13px;
+  }
+  #slide-1 .grid-bg {
+    position: absolute; inset: 0; opacity: 0.04;
+    background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ---- SLIDE 2 - PROBLEMA ---- */
+  #slide-2 { background: #0d1117; justify-content: flex-start; }
+  .slide-header { margin-bottom: 36px; }
+  .slide-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 3px;
+    color: #0078d4; margin-bottom: 8px; font-weight: 600;
+  }
+  .slide-title { font-size: 32px; font-weight: 700; color: #e6edf3; }
+  .slide-title span { color: #50e6ff; }
+
+  .problem-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; }
+  .problem-card {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; padding: 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .problem-card:hover { border-color: rgba(255,80,80,0.4); }
+  .problem-card .icon { font-size: 28px; }
+  .problem-card h3 { font-size: 15px; font-weight: 600; color: #e6edf3; }
+  .problem-card p { font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.6; }
+  .problem-card .badge {
+    display: inline-block; background: rgba(255,80,80,0.15);
+    border: 1px solid rgba(255,80,80,0.3); color: #ff8080;
+    font-size: 11px; padding: 3px 10px; border-radius: 20px; width: fit-content;
+  }
+
+  /* ---- SLIDE 3 - SOLUÇÃO ---- */
+  #slide-3 { background: #0d1117; }
+  .solution-box {
+    background: linear-gradient(135deg, rgba(0,120,212,0.08), rgba(80,230,255,0.05));
+    border: 1px solid rgba(0,120,212,0.25); border-radius: 16px;
+    padding: 28px 32px; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .solution-box .sol-icon { font-size: 40px; flex-shrink: 0; }
+  .solution-box h3 { font-size: 18px; font-weight: 700; color: #50e6ff; margin-bottom: 6px; }
+  .solution-box p { font-size: 13px; color: rgba(255,255,255,0.55); line-height: 1.6; }
+  .solution-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .sol-col {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 18px;
+  }
+  .sol-col .num {
+    font-size: 28px; font-weight: 800;
+    background: linear-gradient(90deg, #0078d4, #50e6ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  .sol-col h4 { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 6px; }
+  .sol-col p { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.5; }
+
+  /* ---- SLIDE 4 - FLUXO ---- */
+  #slide-4 { background: #0d1117; }
+  .flow-container { display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center; }
+  .flow-step {
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 16px 20px;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .flow-step:hover {
+    background: rgba(0,120,212,0.07); border-color: rgba(0,120,212,0.3);
+  }
+  .flow-step .step-num {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #0078d4, #50e6ff);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #fff;
+  }
+  .flow-step.gate .step-num { background: linear-gradient(135deg, #f5a623, #f76b1c); }
+  .flow-step .step-info { flex: 1; }
+  .flow-step .step-info h4 { font-size: 14px; font-weight: 600; color: #e6edf3; margin-bottom: 3px; }
+  .flow-step .step-info p { font-size: 12px; color: rgba(255,255,255,0.45); }
+  .flow-step .step-tag {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500;
+  }
+  .step-tag.auto { background: rgba(0,200,100,0.15); border: 1px solid rgba(0,200,100,0.3); color: #4ade80; }
+  .step-tag.manual { background: rgba(245,166,35,0.15); border: 1px solid rgba(245,166,35,0.3); color: #f5a623; }
+  .flow-arrow {
+    text-align: center; color: rgba(255,255,255,0.2); font-size: 16px; margin: -4px 0;
+  }
+
+  /* ---- SLIDE 5 - PEÇAS ---- */
+  #slide-5 { background: #0d1117; }
+  .pieces-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; flex: 1; }
+  .piece-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px;
+  }
+  .piece-card .piece-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .piece-card h3 { font-size: 15px; font-weight: 700; color: #e6edf3; }
+  .piece-card .piece-desc { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.6; }
+  .piece-card ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .piece-card ul li {
+    font-size: 12px; color: rgba(255,255,255,0.6);
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .piece-card ul li::before { content: '›'; color: #0078d4; font-weight: 700; margin-top: 1px; }
+  .piece-c1 .piece-icon { background: rgba(0,120,212,0.15); }
+  .piece-c2 .piece-icon { background: rgba(80,230,255,0.1); }
+  .piece-c3 .piece-icon { background: rgba(80,200,80,0.1); }
+
+  /* ---- SLIDE 6 - SERVICE HOOK ---- */
+  #slide-6 { background: #0d1117; }
+  .config-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1; }
+  .config-steps { display: flex; flex-direction: column; gap: 12px; }
+  .config-step {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .config-step .cs-num {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    background: rgba(0,120,212,0.2); border: 1px solid rgba(0,120,212,0.4);
+    color: #50e6ff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .config-step h4 { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 4px; }
+  .config-step p { font-size: 12px; color: rgba(255,255,255,0.45); line-height: 1.5; }
+  .config-table { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow: hidden; }
+  .config-table .ct-header {
+    background: rgba(0,120,212,0.1); border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 12px 16px; font-size: 12px; font-weight: 600; color: #50e6ff;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .config-table table { width: 100%; border-collapse: collapse; }
+  .config-table td {
+    padding: 10px 16px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    vertical-align: top;
+  }
+  .config-table td:first-child { color: rgba(255,255,255,0.45); width: 40%; }
+  .config-table td:last-child { color: #e6edf3; font-weight: 500; }
+  .config-table tr:last-child td { border-bottom: none; }
+
+  /* ---- SLIDE 7 - PIPELINE PR ---- */
+  #slide-7 { background: #0d1117; }
+  .code-block {
+    background: #161b22; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; overflow: hidden; flex: 1;
+  }
+  .code-header {
+    background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .code-header span { font-size: 12px; color: rgba(255,255,255,0.4); }
+  .code-header .file-name { color: #50e6ff; font-weight: 600; }
+  .code-dots { display: flex; gap: 5px; }
+  .code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+  .code-content { padding: 20px; font-size: 11.5px; line-height: 1.7; overflow-y: auto; max-height: calc(100vh - 240px); }
+  .code-content pre { font-family: 'Consolas', 'Courier New', monospace; white-space: pre-wrap; }
+  .kw { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .cm { color: #8b949e; font-style: italic; }
+  .val { color: #79c0ff; }
+  .fn { color: #d2a8ff; }
+
+  /* ---- SLIDE 8 - PIPELINE WI ---- */
+  #slide-8 { background: #0d1117; }
+
+  /* ---- SLIDE 9 - PERMISSÕES ---- */
+  #slide-9 { background: #0d1117; }
+  .perms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; }
+  .perm-group {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px; padding: 20px;
+  }
+  .perm-group h3 {
+    font-size: 14px; font-weight: 700; color: #e6edf3;
+    margin-bottom: 16px; display: flex; align-items: center; gap-10px;
+    padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .perm-group h3 span { margin-right: 8px; }
+  .perm-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .perm-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .perm-icon { font-size: 14px; margin-top: 1px; }
+  .perm-info h4 { font-size: 12px; font-weight: 600; color: #e6edf3; margin-bottom: 2px; }
+  .perm-info p { font-size: 11px; color: rgba(255,255,255,0.4); }
+  .perm-badge {
+    margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    white-space: nowrap;
+  }
+  .perm-badge.req { background: rgba(255,80,80,0.15); border: 1px solid rgba(255,80,80,0.3); color: #ff8080; }
+  .perm-badge.rec { background: rgba(245,166,35,0.15); border: 1px solid rgba(245,166,35,0.3); color: #f5a623; }
+
+  /* ---- SLIDE 10 - BENEFÍCIOS ---- */
+  #slide-10 { background: #0d1117; }
+  .benefits-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .benefit-card {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px; padding: 20px; text-align: center;
+  }
+  .benefit-card .b-icon { font-size: 32px; margin-bottom: 12px; }
+  .benefit-card .b-metric {
+    font-size: 32px; font-weight: 800;
+    background: linear-gradient(90deg, #0078d4, #50e6ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+  .benefit-card h4 { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 6px; }
+  .benefit-card p { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+  .roadmap {
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px; padding: 20px;
+    display: flex; gap: 0; align-items: stretch;
+  }
+  .roadmap-item {
+    flex: 1; padding: 0 20px; border-right: 1px solid rgba(255,255,255,0.07);
+    text-align: center;
+  }
+  .roadmap-item:first-child { padding-left: 0; }
+  .roadmap-item:last-child { border-right: none; padding-right: 0; }
+  .roadmap-item .phase { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #0078d4; margin-bottom: 6px; font-weight: 600; }
+  .roadmap-item h4 { font-size: 13px; font-weight: 600; color: #e6edf3; margin-bottom: 6px; }
+  .roadmap-item p { font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+
+  /* ---- SLIDE 11 - ENCERRAMENTO ---- */
+  #slide-11 {
+    background: linear-gradient(135deg, #0d1117 0%, #0f2744 50%, #0d1117 100%);
+    justify-content: center; align-items: center; text-align: center;
+  }
+  #slide-11 .grid-bg {
+    position: absolute; inset: 0; opacity: 0.04;
+    background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none;
+  }
+  #slide-11 h2 {
+    font-size: 36px; font-weight: 700;
+    background: linear-gradient(90deg, #0078d4, #50e6ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+  }
+  #slide-11 p { font-size: 16px; color: rgba(255,255,255,0.5); margin-bottom: 36px; max-width: 500px; }
+  #slide-11 .summary-pills { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  #slide-11 .pill {
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 30px; padding: 10px 24px; font-size: 14px;
+    color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 10px;
+  }
+  #slide-11 .pill span { font-size: 16px; }
+</style>
+</head>
+<body>
+<div class="presentation">
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="slide-counter" id="slideCounter">1 / 11</div>
+
+  <!-- SLIDE 1 - CAPA -->
+  <div class="slide active" id="slide-1">
+    <div class="grid-bg"></div>
+    <div class="logo-area">
+      <svg viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M48 8L88 28V68L48 88L8 68V28L48 8Z" fill="url(#grad1)" opacity="0.2"/>
+        <path d="M48 8L88 28V68L48 88L8 68V28L48 8Z" stroke="url(#grad1)" stroke-width="2"/>
+        <path d="M28 48L42 34L56 48L70 34" stroke="#50e6ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M28 58L42 44L56 58L70 44" stroke="#0078d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <defs>
+          <linearGradient id="grad1" x1="8" y1="8" x2="88" y2="88">
+            <stop offset="0%" stop-color="#0078d4"/>
+            <stop offset="100%" stop-color="#50e6ff"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <h1>Automação de Publicação<br/>no Azure DevOps</h1>
+    <p class="subtitle">Da seleção manual ao deploy inteligente e rastreável</p>
+    <div class="tags">
+      <span class="tag">⚡ Service Hooks</span>
+      <span class="tag">🔁 CI/CD Pipeline</span>
+      <span class="tag">🤖 REST API</span>
+      <span class="tag">✅ Aprovação Humana</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2 - PROBLEMA -->
+  <div class="slide" id="slide-2">
+    <div class="slide-header">
+      <div class="slide-label">Diagnóstico</div>
+      <div class="slide-title">O <span>Problema</span> Atual</div>
+    </div>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="icon">🖱️</div>
+        <div class="badge">Processo Manual</div>
+        <h3>Seleção manual de demandas</h3>
+        <p>Alguém precisa revisar todos os Work Items, identificar quais estão prontos e selecionar um a um para publicação.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">⏳</div>
+        <div class="badge">Gargalo de Tempo</div>
+        <h3>Atualização de status individual</h3>
+        <p>Cada Work Item tem seu status atualizado manualmente para "Concluído" após a publicação, gerando retrabalho.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">🔀</div>
+        <div class="badge">Risco Operacional</div>
+        <h3>PRs criados manualmente</h3>
+        <p>Pull Requests feitos diretamente na master sem um processo padronizado aumentam o risco de erros humanos.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">📉</div>
+        <div class="badge">Baixa Rastreabilidade</div>
+        <h3>Sem automação de CD</h3>
+        <p>Apenas o CI está automatizado. O processo de entrega (CD) depende de ações manuais e não tem auditoria clara.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 - SOLUÇÃO -->
+  <div class="slide" id="slide-3">
+    <div class="slide-header">
+      <div class="slide-label">Proposta</div>
+      <div class="slide-title">A <span>Solução</span> Proposta</div>
+    </div>
+    <div class="solution-box">
+      <div class="sol-icon">🚀</div>
+      <div>
+        <h3>Pipeline Inteligente com Aprovação Humana</h3>
+        <p>Automatizar tudo que pode ser automatizado — criação de PRs, atualização de Work Items e rastreabilidade — mantendo o controle humano apenas no ponto crítico: a aprovação antes do merge na master.</p>
+      </div>
+    </div>
+    <div class="solution-cols">
+      <div class="sol-col">
+        <div class="num">01</div>
+        <h4>Service Hook</h4>
+        <p>Gatilho automático quando um Work Item muda de estado para "Concluído".</p>
+      </div>
+      <div class="sol-col">
+        <div class="num">02</div>
+        <h4>Auto PR via REST API</h4>
+        <p>Pipeline cria o Pull Request da branch correta para a master automaticamente.</p>
+      </div>
+      <div class="sol-col">
+        <div class="num">03</div>
+        <h4>Update Automático</h4>
+        <p>Após o merge, o Work Item é atualizado para "Publicado" sem intervenção humana.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 - FLUXO -->
+  <div class="slide" id="slide-4">
+    <div class="slide-header">
+      <div class="slide-label">Processo</div>
+      <div class="slide-title">Fluxo <span>Completo</span> da Automação</div>
+    </div>
+    <div class="flow-container">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-info">
+          <h4>Desenvolvedor conclui o trabalho</h4>
+          <p>Work Item atualizado para <strong style="color:#50e6ff">"Concluído"</strong> com branch vinculada (ex: feature/1234)</p>
+        </div>
+        <span class="step-tag manual">Manual</span>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-info">
+          <h4>Service Hook detecta a mudança de estado</h4>
+          <p>Azure DevOps dispara automaticamente o pipeline de criação de PR</p>
+        </div>
+        <span class="step-tag auto">Automático</span>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-info">
+          <h4>Pipeline cria o Pull Request</h4>
+          <p>PR criado via REST API: branch da demanda → master, já vinculado ao Work Item</p>
+        </div>
+        <span class="step-tag auto">Automático</span>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step gate">
+        <div class="step-num">4</div>
+        <div class="step-info">
+          <h4>⏸️ Aprovação humana do PR</h4>
+          <p>Revisor analisa o código e aprova o Pull Request no Azure DevOps</p>
+        </div>
+        <span class="step-tag manual">Aprovação</span>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-info">
+          <h4>Merge na master & atualização automática</h4>
+          <p>Após o merge, pipeline atualiza o Work Item para <strong style="color:#4ade80">"Publicado"</strong> automaticamente</p>
+        </div>
+        <span class="step-tag auto">Automático</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 - PEÇAS -->
+  <div class="slide" id="slide-5">
+    <div class="slide-header">
+      <div class="slide-label">Arquitetura</div>
+      <div class="slide-title">As 3 <span>Peças</span> da Solução</div>
+    </div>
+    <div class="pieces-grid">
+      <div class="piece-card piece-c1">
+        <div class="piece-icon">🔔</div>
+        <h3>Service Hook</h3>
+        <p class="piece-desc">Gatilho configurado no Azure DevOps que escuta mudanças de estado dos Work Items.</p>
+        <ul>
+          <li>Evento: Work Item Updated</li>
+          <li>Filtro: State = "Concluído"</li>
+          <li>Ação: Dispara o pipeline de PR</li>
+          <li>Sem código adicional necessário</li>
+        </ul>
+      </div>
+      <div class="piece-card piece-c2">
+        <div class="piece-icon">📄</div>
+        <h3>Pipeline Auto-PR (YAML)</h3>
+        <p class="piece-desc">Pipeline que recebe o ID do Work Item e cria o PR automaticamente via REST API.</p>
+        <ul>
+          <li>Recebe workItemId e branchName</li>
+          <li>Autentica via System.AccessToken</li>
+          <li>Cria PR com título e descrição padrão</li>
+          <li>Vincula o PR ao Work Item</li>
+        </ul>
+      </div>
+      <div class="piece-card piece-c3">
+        <div class="piece-icon">✅</div>
+        <h3>Pipeline Update WI (YAML)</h3>
+        <p class="piece-desc">Pipeline acionado pelo merge na master que atualiza o status do Work Item.</p>
+        <ul>
+          <li>Trigger: push na master</li>
+          <li>Busca WI vinculado ao commit</li>
+          <li>Atualiza estado via PATCH API</li>
+          <li>Log auditável de cada publicação</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 - SERVICE HOOK -->
+  <div class="slide" id="slide-6">
+    <div class="slide-header">
+      <div class="slide-label">Configuração</div>
+      <div class="slide-title">Configurando o <span>Service Hook</span></div>
+    </div>
+    <div class="config-layout">
+      <div class="config-steps">
+        <div class="config-step">
+          <div class="cs-num">1</div>
+          <div>
+            <h4>Acessar Project Settings</h4>
+            <p>No Azure DevOps, vá em <strong style="color:#50e6ff">Project Settings → Service Hooks → + Create Subscription</strong></p>
+          </div>
+        </div>
+        <div class="config-step">
+          <div class="cs-num">2</div>
+          <div>
+            <h4>Selecionar o serviço</h4>
+            <p>Escolha <strong style="color:#50e6ff">Azure Pipelines</strong> como tipo de serviço de destino</p>
+          </div>
+        </div>
+        <div class="config-step">
+          <div class="cs-num">3</div>
+          <div>
+            <h4>Definir o gatilho</h4>
+            <p>Evento: <strong style="color:#50e6ff">Work item updated</strong> — com filtro de campo <strong style="color:#50e6ff">State</strong> igual a <strong style="color:#50e6ff">Concluído</strong></p>
+          </div>
+        </div>
+        <div class="config-step">
+          <div class="cs-num">4</div>
+          <div>
+            <h4>Apontar para o pipeline</h4>
+            <p>Selecionar o pipeline <strong style="color:#50e6ff">azure-pipelines-auto-pr.yml</strong> e mapear os parâmetros do payload</p>
+          </div>
+        </div>
+      </div>
+      <div class="config-table">
+        <div class="ct-header">⚙️ Parâmetros do Service Hook</div>
+        <table>
+          <tr><td>Serviço</td><td>Azure Pipelines</td></tr>
+          <tr><td>Gatilho</td><td>Work item updated</td></tr>
+          <tr><td>Campo filtrado</td><td>State</td></tr>
+          <tr><td>Valor do filtro</td><td>Concluído</td></tr>
+          <tr><td>Pipeline alvo</td><td>azure-pipelines-auto-pr.yml</td></tr>
+          <tr><td>Param: workItemId</td><td>$(workitem.id)</td></tr>
+          <tr><td>Param: branchName</td><td>$(workitem.custom.branch)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 - PIPELINE AUTO PR -->
+  <div class="slide" id="slide-7">
+    <div class="slide-header">
+      <div class="slide-label">Código</div>
+      <div class="slide-title">Pipeline: <span>Criação Automática de PR</span></div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots">
+          <span style="background:#ff5f57"></span>
+          <span style="background:#febc2e"></span>
+          <span style="background:#28c840"></span>
+        </div>
+        <span class="file-name">azure-pipelines-auto-pr.yml</span>
+      </div>
+      <div class="code-content"><pre><span class="cm"># Pipeline disparado via Service Hook quando WI → Concluído</span>
+<span class="kw">trigger</span>: <span class="val">none</span>
+
+<span class="kw">parameters</span>:
+  - <span class="kw">name</span>: <span class="val">workItemId</span>
+    <span class="kw">type</span>: <span class="val">string</span>
+  - <span class="kw">name</span>: <span class="val">branchName</span>
+    <span class="kw">type</span>: <span class="val">string</span>
+
+<span class="kw">variables</span>:
+  ORGANIZATION: <span class="str">'sua-organizacao'</span>
+  PROJECT:      <span class="str">'seu-projeto'</span>
+  REPO:         <span class="str">'seu-repositorio'</span>
+
+<span class="kw">stages</span>:
+  - <span class="kw">stage</span>: <span class="val">CreatePR</span>
+    <span class="kw">jobs</span>:
+      - <span class="kw">job</span>: <span class="val">AutoPR</span>
+        <span class="kw">pool</span>:
+          <span class="kw">vmImage</span>: <span class="str">'ubuntu-latest'</span>
+        <span class="kw">steps</span>:
+          - <span class="kw">task</span>: <span class="val">PowerShell@2</span>
+            <span class="kw">inputs</span>:
+              <span class="kw">targetType</span>: <span class="str">'inline'</span>
+              <span class="kw">script</span>: |
+                <span class="cm"># Configura headers de autenticação</span>
+                <span class="fn">$headers</span> = @{
+                  Authorization  = <span class="str">"Bearer $(System.AccessToken)"</span>
+                  <span class="str">"Content-Type"</span> = <span class="str">"application/json"</span>
+                }
+                <span class="cm"># Monta o body do PR com vínculo ao Work Item</span>
+                <span class="fn">$body</span> = @{
+                  title         = <span class="str">"Auto PR - WI #$(workItemId)"</span>
+                  sourceRefName = <span class="str">"refs/heads/$(branchName)"</span>
+                  targetRefName = <span class="str">"refs/heads/master"</span>
+                  workItemRefs  = @(@{ id = <span class="str">"$(workItemId)"</span> })
+                } | <span class="fn">ConvertTo-Json</span>
+                <span class="cm"># Cria o PR via REST API</span>
+                <span class="fn">$url</span> = <span class="str">"https://dev.azure.com/$(ORGANIZATION)/$(PROJECT)/_apis/git/repositories/$(REPO)/pullrequests?api-version=7.1"</span>
+                <span class="fn">Invoke-RestMethod</span> -Uri <span class="fn">$url</span> -Method POST -Headers <span class="fn">$headers</span> -Body <span class="fn">$body</span></pre></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 - PIPELINE UPDATE WI -->
+  <div class="slide" id="slide-8">
+    <div class="slide-header">
+      <div class="slide-label">Código</div>
+      <div class="slide-title">Pipeline: <span>Atualização do Work Item</span></div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots">
+          <span style="background:#ff5f57"></span>
+          <span style="background:#febc2e"></span>
+          <span style="background:#28c840"></span>
+        </div>
+        <span class="file-name">azure-pipelines-update-workitem.yml</span>
+      </div>
+      <div class="code-content"><pre><span class="cm"># Pipeline disparado após merge na master</span>
+<span class="kw">trigger</span>:
+  <span class="kw">branches</span>:
+    <span class="kw">include</span>:
+      - <span class="val">master</span>
+
+<span class="kw">variables</span>:
+  ORGANIZATION: <span class="str">'sua-organizacao'</span>
+  PROJECT:      <span class="str">'seu-projeto'</span>
+
+<span class="kw">stages</span>:
+  - <span class="kw">stage</span>: <span class="val">UpdateWorkItem</span>
+    <span class="kw">jobs</span>:
+      - <span class="kw">job</span>: <span class="val">UpdateWI</span>
+        <span class="kw">pool</span>:
+          <span class="kw">vmImage</span>: <span class="str">'ubuntu-latest'</span>
+        <span class="kw">steps</span>:
+          - <span class="kw">task</span>: <span class="val">PowerShell@2</span>
+            <span class="kw">inputs</span>:
+              <span class="kw">targetType</span>: <span class="str">'inline'</span>
+              <span class="kw">script</span>: |
+                <span class="fn">$headers</span> = @{
+                  Authorization  = <span class="str">"Bearer $(System.AccessToken)"</span>
+                  <span class="str">"Content-Type"</span> = <span class="str">"application/json"</span>
+                }
+                <span class="cm"># Busca Work Items vinculados ao commit do merge</span>
+                <span class="fn">$commitId</span> = <span class="str">"$(Build.SourceVersion)"</span>
+                <span class="fn">$repoId</span>   = <span class="str">"$(Build.Repository.ID)"</span>
+                <span class="fn">$urlCommit</span> = <span class="str">"https://dev.azure.com/$(ORGANIZATION)/$(PROJECT)/_apis/git/repositories/$repoId/commits/$commitId/workItems?api-version=7.1"</span>
+                <span class="fn">$workItems</span> = <span class="fn">Invoke-RestMethod</span> -Uri <span class="fn">$urlCommit</span> -Method GET -Headers <span class="fn">$headers</span>
+
+                <span class="kw">foreach</span> (<span class="fn">$wi</span> <span class="kw">in</span> <span class="fn">$workItems</span>.value) {
+                  <span class="cm"># Atualiza estado do Work Item para "Publicado"</span>
+                  <span class="fn">$bodyUpdate</span> = @(
+                    @{ op = <span class="str">"add"</span>; path = <span class="str">"/fields/System.State"</span>; value = <span class="str">"Publicado"</span> }
+                  ) | <span class="fn">ConvertTo-Json</span>
+
+                  <span class="fn">$urlUpdate</span> = <span class="str">"https://dev.azure.com/$(ORGANIZATION)/$(PROJECT)/_apis/wit/workitems/$($wi.id)?api-version=7.1"</span>
+                  <span class="fn">Invoke-RestMethod</span> -Uri <span class="fn">$urlUpdate</span> -Method PATCH -Headers <span class="fn">$headers</span> -Body <span class="fn">$bodyUpdate</span> -ContentType <span class="str">"application/json-patch+json"</span>
+                  <span class="fn">Write-Host</span> <span class="str">"✅ Work Item #$($wi.id) → Publicado"</span>
+                }</pre></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9 - PERMISSÕES -->
+  <div class="slide" id="slide-9">
+    <div class="slide-header">
+      <div class="slide-label">Segurança</div>
+      <div class="slide-title"><span>Permissões</span> Necessárias</div>
+    </div>
+    <div class="perms-grid">
+      <div class="perm-group">
+        <h3><span>🔑</span> Build Service Account</h3>
+        <div class="perm-item">
+          <div class="perm-icon">📁</div>
+          <div class="perm-info">
+            <h4>Contribute to Pull Requests</h4>
+            <p>Necessário para criar PRs via REST API</p>
+          </div>
+          <span class="perm-badge req">Obrigatório</span>
+        </div>
+        <div class="perm-item">
+          <div class="perm-icon">✏️</div>
+          <div class="perm-info">
+            <h4>Edit Work Items</h4>
+            <p>Para atualizar o estado dos Work Items</p>
+          </div>
+          <span class="perm-badge req">Obrigatório</span>
+        </div>
+        <div class="perm-item">
+          <div class="perm-icon">👁️</div>
+          <div class="perm-info">
+            <h4>View Work Items</h4>
+            <p>Para ler os WIs vinculados ao commit</p>
+          </div>
+          <span class="perm-badge req">Obrigatório</span>
+        </div>
+      </div>
+      <div class="perm-group">
+        <h3><span>🛡️</span> Repositório / Pipeline</h3>
+        <div class="perm-item">
+          <div class="perm-icon">🔒</div>
+          <div class="perm-info">
+            <h4>Allow scripts to access OAuth token</h4>
+            <p>Habilitar nas configurações do pipeline para usar System.AccessToken</p>
+          </div>
+          <span class="perm-badge req">Obrigatório</span>
+        </div>
+        <div class="perm-item">
+          <div class="perm-icon">🌿</div>
+          <div class="perm-info">
+            <h4>Branch Policies na master</h4>
+            <p>Configurar política de aprovação mínima antes do merge</p>
+          </div>
+          <span class="perm-badge rec">Recomendado</span>
+        </div>
+        <div class="perm-item">
+          <div class="perm-icon">🔔</div>
+          <div class="perm-info">
+            <h4>Service Hook subscription</h4>
+            <p>Permissão de administrador para criar o Service Hook</p>
+          </div>
+          <span class="perm-badge req">Obrigatório</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 - BENEFÍCIOS -->
+  <div class="slide" id="slide-10">
+    <div class="slide-header">
+      <div class="slide-label">Resultado</div>
+      <div class="slide-title"><span>Benefícios</span> e Próximos Passos</div>
+    </div>
+    <div class="benefits-grid">
+      <div class="benefit-card">
+        <div class="b-icon">⚡</div>
+        <div class="b-metric">~0</div>
+        <h4>Ações manuais repetitivas</h4>
+        <p>PR criado, Work Item atualizado e rastreabilidade garantida sem intervenção humana</p>
+      </div>
+      <div class="benefit-card">
+        <div class="b-icon">🎯</div>
+        <div class="b-metric">100%</div>
+        <h4>Rastreabilidade</h4>
+        <p>Todo PR vinculado ao Work Item, todo merge registrado com log de quem aprovou</p>
+      </div>
+      <div class="benefit-card">
+        <div class="b-icon">🛡️</div>
+        <div class="b-metric">1</div>
+        <h4>Ponto de controle humano</h4>
+        <p>Apenas a aprovação do PR permanece manual, garantindo qualidade sem burocracia</p>
+      </div>
+    </div>
+    <div class="roadmap">
+      <div class="roadmap-item">
+        <div class="phase">Fase 1</div>
+        <h4>🔧 Configuração</h4>
+        <p>Service Hook + Pipelines YAML + Permissões</p>
+      </div>
+      <div class="roadmap-item">
+        <div class="phase">Fase 2</div>
+        <h4>🧪 Homologação</h4>
+        <p>Testar com uma demanda real em ambiente de dev</p>
+      </div>
+      <div class="roadmap-item">
+        <div class="phase">Fase 3</div>
+        <h4>🚀 Produção</h4>
+        <p>Rollout completo com Branch Policies na master</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 - FIM -->
+  <div class="slide" id="slide-11">
+    <div class="grid-bg"></div>
+    <h2>Pronto para Implementar! 🚀</h2>
+    <p>Com essas três peças, o processo de publicação passa a ser rastreável, padronizado e quase totalmente automático.</p>
+    <div class="summary-pills">
+      <div class="pill"><span>🔔</span> Service Hook detecta Work Items "Concluído"</div>
+      <div class="pill"><span>📄</span> Pipeline cria PR automaticamente</div>
+      <div class="pill"><span>✅</span> Aprovação humana preservada no PR</div>
+      <div class="pill"><span>🔄</span> Work Item atualizado para "Publicado" após merge</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navegação -->
+<div class="nav">
+  <button id="prevBtn" onclick="changeSlide(-1)" disabled>‹</button>
+  <div class="nav-dots" id="navDots"></div>
+  <button id="nextBtn" onclick="changeSlide(1)">›</button>
+</div>
+
+<script>
+  const TOTAL = 11;
+  let current = 1;
+
+  const dots = document.getElementById('navDots');
+  for (let i = 1; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 1 ? ' active' : '');
+    d.onclick = () => goTo(i);
+    dots.appendChild(d);
+  }
+
+  function goTo(n) {
+    document.getElementById('slide-' + current).style.display = 'none';
+    current = n;
+    const s = document.getElementById('slide-' + current);
+    s.style.display = 'flex';
+    setTimeout(() => s.style.opacity = 1, 10);
+
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i + 1 === current));
+    document.getElementById('prevBtn').disabled = current === 1;
+    document.getElementById('nextBtn').disabled = current === TOTAL;
+    document.getElementById('slideCounter').textContent = current + ' / ' + TOTAL;
+    document.getElementById('progressBar').style.width = ((current / TOTAL) * 100) + '%';
+  }
+
+  function changeSlide(dir) {
+    const next = current + dir;
+    if (next >= 1 && next <= TOTAL) goTo(next);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') changeSlide(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') changeSlide(-1);
+  });
+
+  // Init progress
+  document.getElementById('progressBar').style.width = ((1 / TOTAL) * 100) + '%';
+</script>
+</body>
+</html>
